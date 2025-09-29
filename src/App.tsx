@@ -9,6 +9,11 @@ interface EventRecord {
   description: string;
 }
 
+const apiBase = import.meta.env.VITE_API_BASE_URL || 
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+    ? "http://localhost:8787" 
+    : "https://hlp-api.onrender.com");
+
 function Dashboard() {
   const [status, setStatus] = useState<
     "disconnected" | "connecting" | "connected"
@@ -20,10 +25,9 @@ function Dashboard() {
   const [eventCount, setEventCount] = useState<number>(0);
   const [soundsPlayed, setSoundsPlayed] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  console.log("🌐 Broadcaster Suite API Base:", apiBase);
 
-  const apiBase = useMemo(() => {
-    return "https://hlp-api.onrender.com";
-  }, []);
+  
 
   const addEvent = (type: string, description: string, data?: unknown) => {
     const event: EventRecord = {
@@ -776,16 +780,13 @@ function VideoOverlay() {
   const volume = 1;
   const [visible, setVisible] = useState<boolean>(false);
 
-  const apiBase = useMemo(() => {
-    return "http://localhost:8787";
-  }, []);
-
   useEffect(() => {
     const es = new EventSource(`${apiBase}/events`);
 
     const playVideo = (src: string) => {
-      const el = videoRef.current ?? document.createElement("video");
-      if (!videoRef.current) videoRef.current = el;
+      const el = videoRef.current;
+      if (!el) return;
+      
       // Reset any existing playback and source to avoid freezing last frame
       try {
         el.pause();
@@ -823,6 +824,10 @@ function VideoOverlay() {
         height: "100vh",
         background: "transparent",
         overflow: "hidden",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        zIndex: 9999,
       }}
     >
       <video
@@ -835,6 +840,7 @@ function VideoOverlay() {
           transition: "opacity 150ms ease-in-out",
         }}
         playsInline
+        muted={muted}
         onEnded={() => {
           const el = videoRef.current;
           if (el) {
