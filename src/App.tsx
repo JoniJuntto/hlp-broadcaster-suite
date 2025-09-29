@@ -133,7 +133,7 @@ function Dashboard() {
       es.close();
       addEvent("system", "Disconnected from server");
     };
-  }, [apiBase, volume, muted]);
+  }, [volume, muted]);
 
   const clearHistory = () => {
     setEvents([]);
@@ -160,6 +160,9 @@ function Dashboard() {
               </a>
               <a href="/privacy" className="nav-link">
                 Privacy Policy
+              </a>
+              <a href="/video" className="nav-link">
+                Video Overlay
               </a>
             </div>
           </div>
@@ -779,11 +782,12 @@ function VideoOverlay() {
   const muted = true;
   const volume = 1;
   const [visible, setVisible] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ username: string; rewardName: string } | null>(null);
 
   useEffect(() => {
     const es = new EventSource(`${apiBase}/events`);
 
-    const playVideo = (src: string) => {
+    const playVideo = (src: string, username?: string, rewardName?: string) => {
       const el = videoRef.current;
       if (!el) return;
       
@@ -800,14 +804,20 @@ function VideoOverlay() {
       el.volume = volume;
       setVisible(true);
       el.play().catch(() => undefined);
+
+      // Show toast if username and reward name are provided
+      if (username && rewardName) {
+        setToast({ username, rewardName });
+        setTimeout(() => setToast(null), 2000);
+      }
     };
 
     es.onopen = () => undefined;
     es.addEventListener("connected", () => undefined);
     es.addEventListener("play-video", (e: MessageEvent) => {
       try {
-        const payload = JSON.parse(e.data) as { src: string };
-        playVideo(payload.src);
+        const payload = JSON.parse(e.data) as { src: string; username?: string; rewardName?: string };
+        playVideo(payload.src, payload.username, payload.rewardName);
       } catch {
         /* noop */
       }
@@ -815,7 +825,7 @@ function VideoOverlay() {
     es.onerror = () => undefined;
 
     return () => es.close();
-  }, [apiBase, muted, volume]);
+  }, [muted, volume]);
 
   return (
     <div
@@ -868,6 +878,47 @@ function VideoOverlay() {
           setVisible(false);
         }}
       />
+      
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: "absolute",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(0, 0, 0, 0.8)",
+            color: "white",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontSize: "18px",
+            fontWeight: "bold",
+            textAlign: "center",
+            zIndex: 10000,
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+            border: "2px solid #9146ff",
+            animation: "fadeInOut 2s ease-in-out",
+          }}
+        >
+          <div style={{ fontSize: "16px", marginBottom: "4px" }}>
+            {toast.username}
+          </div>
+          <div style={{ fontSize: "14px", opacity: 0.9 }}>
+            redeemed: {toast.rewardName}
+          </div>
+        </div>
+      )}
+      
+      <style>
+        {`
+          @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+          }
+        `}
+      </style>
     </div>
   );
 }
