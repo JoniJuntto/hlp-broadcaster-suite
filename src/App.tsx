@@ -24,6 +24,7 @@ function Dashboard() {
   const [connectedAt, setConnectedAt] = useState<Date | null>(null);
   const [eventCount, setEventCount] = useState<number>(0);
   const [soundsPlayed, setSoundsPlayed] = useState<number>(0);
+  const [toast, setToast] = useState<{ username: string; rewardName: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   console.log("🌐 Broadcaster Suite API Base:", apiBase);
 
@@ -105,7 +106,7 @@ function Dashboard() {
 
     es.addEventListener("play-sound", (e: MessageEvent) => {
       try {
-        const payload = JSON.parse(e.data) as { src: string; filename: string };
+        const payload = JSON.parse(e.data) as { src: string; filename: string; username?: string; rewardName?: string };
         addEvent("sound", `Playing: ${payload.filename}`, payload);
         setSoundsPlayed((prev) => prev + 1);
 
@@ -117,6 +118,12 @@ function Dashboard() {
           audio.play().catch(() => {
             addEvent("error", `Failed to play: ${payload.filename}`);
           });
+        }
+
+        // Show toast if username and reward name are provided
+        if (payload.username && payload.rewardName) {
+          setToast({ username: payload.username, rewardName: payload.rewardName });
+          setTimeout(() => setToast(null), 5000);
         }
       } catch {
         addEvent("error", "Failed to parse sound event");
@@ -252,6 +259,47 @@ function Dashboard() {
       </main>
 
       <audio ref={audioRef} />
+      
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(0, 0, 0, 0.8)",
+            color: "white",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontSize: "18px",
+            fontWeight: "bold",
+            textAlign: "center",
+            zIndex: 10000,
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+            border: "2px solid #9146ff",
+            animation: "fadeInOut 5s ease-in-out",
+          }}
+        >
+          <div style={{ fontSize: "16px", marginBottom: "4px" }}>
+            {toast.username}
+          </div>
+          <div style={{ fontSize: "14px", opacity: 0.9 }}>
+            redeemed: {toast.rewardName}
+          </div>
+        </div>
+      )}
+      
+      <style>
+        {`
+          @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            5% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            95% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+          }
+        `}
+      </style>
     </div>
   );
 }
@@ -808,7 +856,7 @@ function VideoOverlay() {
       // Show toast if username and reward name are provided
       if (username && rewardName) {
         setToast({ username, rewardName });
-        setTimeout(() => setToast(null), 2000);
+        setTimeout(() => setToast(null), 5000);
       }
     };
 
@@ -897,7 +945,7 @@ function VideoOverlay() {
             zIndex: 10000,
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
             border: "2px solid #9146ff",
-            animation: "fadeInOut 2s ease-in-out",
+            animation: "fadeInOut 5s ease-in-out",
           }}
         >
           <div style={{ fontSize: "16px", marginBottom: "4px" }}>
@@ -913,8 +961,8 @@ function VideoOverlay() {
         {`
           @keyframes fadeInOut {
             0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            5% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            95% { opacity: 1; transform: translateX(-50%) translateY(0); }
             100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
           }
         `}
